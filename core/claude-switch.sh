@@ -922,7 +922,7 @@ PY_CLASH_RULES
 fi
 
 # ============ 安装时可配置项(安装程序会自动改写) ============
-PROXY_MODE="clash-verge"       # 代理客户端: clash-verge|flclash|shadowrocket|sing-box|clashx|surge|auto
+PROXY_MODE="clash-verge"       # 代理客户端: clash-verge|flclash|bettbox|shadowrocket|sing-box|clashx|surge|auto
 PROXY_GROUP="IpEqual"          # Clash 代理组名(安装时自动探测)
 COUNTRY_TARGET="US"            # 目标出口国家(安装时按出口自动识别)
 TZ_TARGET="America/New_York"   # 锁定时区,应与出口IP所在城市一致
@@ -978,6 +978,7 @@ proxy_name() {
     case "$PROXY_MODE" in
         clash-verge)  echo "Clash Verge" ;;
         flclash)      echo "FlClash" ;;
+        bettbox)      echo "Bettbox" ;;
         shadowrocket) echo "Shadowrocket" ;;
         sing-box)     echo "sing-box" ;;
         clashx)       echo "ClashX" ;;
@@ -992,6 +993,7 @@ proxy_app_name() {
     case "$PROXY_MODE" in
         clash-verge)  echo "Clash Verge" ;;
         flclash)      echo "FlClash" ;;
+        bettbox)      echo "Bettbox" ;;
         shadowrocket) echo "Shadowrocket" ;;
         clashx)       echo "ClashX" ;;
         surge)        echo "Surge" ;;
@@ -1009,18 +1011,30 @@ shadowrocket_up() {
     fi
 }
 
+# ClashX / ClashX Pro / ClashX Meta 的主可执行文件都在 .../Contents/MacOS/ClashX。
+# 只按 -x ClashX 会漏掉 Pro/Meta，按小写 "clash" 又匹配不到大写主进程。
+clashx_alive() {
+    pgrep -f '/Contents/MacOS/ClashX' >/dev/null 2>&1 \
+        || pgrep -x ClashX >/dev/null 2>&1 \
+        || pgrep -x 'ClashX Pro' >/dev/null 2>&1 \
+        || pgrep -x 'ClashX Meta' >/dev/null 2>&1
+}
+
 # 代理内核在线判定:按安装时识别的客户端分派;auto 时任一命中即活
 proxy_alive() {
     case "$PROXY_MODE" in
         clash-verge)  pgrep -f verge-mihomo >/dev/null 2>&1 ;;
         flclash)      pgrep -f FlClashCore >/dev/null 2>&1 || pgrep -x FlClash >/dev/null 2>&1 ;;
+        bettbox)      pgrep -f BettboxCore >/dev/null 2>&1 || pgrep -x Bettbox >/dev/null 2>&1 ;;
         shadowrocket) shadowrocket_up ;;
         sing-box)     pgrep -f sing-box >/dev/null 2>&1 ;;
-        clashx)       pgrep -x ClashX >/dev/null 2>&1 || pgrep -f clash >/dev/null 2>&1 ;;
+        clashx)       clashx_alive ;;
         surge)        pgrep -f Surge >/dev/null 2>&1 ;;
         auto)         pgrep -f verge-mihomo >/dev/null 2>&1 || shadowrocket_up \
                       || pgrep -f sing-box >/dev/null 2>&1 \
-                      || pgrep -x ClashX >/dev/null 2>&1 || pgrep -f clash >/dev/null 2>&1 \
+                      || pgrep -f FlClashCore >/dev/null 2>&1 || pgrep -x FlClash >/dev/null 2>&1 \
+                      || pgrep -f BettboxCore >/dev/null 2>&1 || pgrep -x Bettbox >/dev/null 2>&1 \
+                      || clashx_alive \
                       || pgrep -f Surge >/dev/null 2>&1 ;;
         *)            pgrep -f verge-mihomo >/dev/null 2>&1 ;;
     esac
@@ -1707,8 +1721,8 @@ ASEOF
 set_client() {
     mode="${1:-}"
     case "$mode" in
-        clash-verge|flclash|shadowrocket|sing-box|clashx|surge|auto) ;;
-        *) echo "FAIL:用法: claude-switch.sh set-client <clash-verge|flclash|shadowrocket|sing-box|clashx|surge|auto>"; return 1 ;;
+        clash-verge|flclash|bettbox|shadowrocket|sing-box|clashx|surge|auto) ;;
+        *) echo "FAIL:用法: claude-switch.sh set-client <clash-verge|flclash|bettbox|shadowrocket|sing-box|clashx|surge|auto>"; return 1 ;;
     esac
     target="${CLAUDE_SWITCHER_CORE:-}"
     if [ -z "$target" ]; then
@@ -1735,7 +1749,7 @@ set_client() {
 # 只读输出当前代理客户端(供 UI 下拉高亮),同时列出全部支持项
 get_client() {
     echo "client=$PROXY_MODE"
-    echo "clients=clash-verge,flclash,shadowrocket,sing-box,clashx,surge"
+    echo "clients=clash-verge,flclash,bettbox,shadowrocket,sing-box,clashx,surge"
 }
 
 # 地区自适应:按当前出口国家一键重设 国家/时区/地区格式(换了国家节点后运行)
